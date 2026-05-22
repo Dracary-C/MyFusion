@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environment
+.env
+.venv/
+venv/
+
+# Local configs
+/config.yml
+config.local.yml
+*.local.yml
+
+# Outputs and logs
+/outputs/
+/runs/
+/logs/
+*.log
+
+# Data and model weights
+/data/
+/datasets/
+/checkpoints/
+/pretrained/
+/model_weights/
+/weights/
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.bin
+
+# Third-party heavy folders if they are copied later
+/third_party/**/checkpoints/
+/third_party/**/pretrained/
+/third_party/**/datasets/
+/third_party/**/data/
+/myfusion/legacy/**/checkpoints/
+
+# System files
+.DS_Store

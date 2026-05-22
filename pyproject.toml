@@ -1,0 +1,15 @@
+[project]
+name = "myfusion"
+version = "0.1.0"
+description = "Latent-QA guided image restoration experiments."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pillow",
+  "pyyaml",
+  "streamlit",
+  "torch",
+]
+
+[tool.setuptools.packages.find]
+include = ["myfusion*", "methodhub*"]

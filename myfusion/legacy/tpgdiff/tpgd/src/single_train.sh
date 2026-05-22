@@ -1,0 +1,18 @@
+HF_ENDPOINT=https://hf-mirror.com HF_HUB_DISABLE_XET=1 CUDA_VISIBLE_DEVICES=1 python -m training.main \
+    --prior-stage \
+    --num-degradations 2 \
+    --label-smoothing 0.01 \
+    --save-frequency 10 \
+    --report-to wandb --wandb-project-name TPGDiff_1 \
+    --train-data="/data/chenzt/Dataset/TPGDiff/priors_Train.csv" \
+    --val-data="/data/chenzt/Dataset/TPGDiff/priors_Val.csv" \
+    --csv-separator "\t" \
+    --warmup 200 \
+    --batch-size=128 \
+    --lr=2e-5 \
+    --wd=0.05 \
+    --epochs=150 \
+    --workers=8 \
+    --model ViT-B-32 \
+    --name "priors_ViT-B-32_lr2e-5_e150_bs128_gpu1" \
+    --pretrained "laion2b_s34b_b79k"
