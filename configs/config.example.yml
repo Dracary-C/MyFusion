@@ -30,6 +30,33 @@ paths:
   rar_config: ./myfusion/legacy/rar/configs/infer_cfg.yaml
   rar_assessment_config: ./myfusion/legacy/rar/iqa/config.yaml
 
+assess_tpgd:
+  # Initial bootstrap training entry. Replace these with paired train folders.
+  lq_dir: /path/to/train/LQ
+  gt_dir: /path/to/train/GT
+  # Use hidden_dir for one hidden-state .pt per image, or hidden_path for a single smoke-test hidden file.
+  hidden_dir: /path/to/assessment/features
+  hidden_path: ""
+  output_dir: /path/to/MyFusion/outputs/assess_tpgd
+  hidden_key: condition_hidden
+  image_size: 128
+  batch_size: 1
+  epochs: 1
+  max_steps: 100
+  lr: 0.0001
+  num_workers: 0
+  device: cuda
+  freeze_backbone: true
+  no_load_checkpoint: false
+  strict_load: false
+  adapter_hidden_dim: 1024
+  adapter_pool: mean
+  adapter_dropout: 0.0
+  random_content_context: false
+  save_every: 100
+  log_every: 10
+  save_full_model: false
+
 commands:
   python: /path/to/conda/env/bin/python
   streamlit: /path/to/conda/env/bin/streamlit

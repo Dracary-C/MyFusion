@@ -1,99 +1,177 @@
 # MyFusion
+MyFusion 是一个图像复原实验仓库。当前目标是把 TPGDiff、RAR、DepictQA 的可用流程收进同一个工程，先跑通整合版，再逐步替换成自己的模块。
 
-MyFusion 是一个面向图像复原实验的方法构筑仓库。当前目标不是简单调用 TPGDiff、RAR、DepictQA，而是先把它们的关键能力整理成可替换模块，再逐步内化成自己的方法组件。
+方法原理部分暂时留空，等实验分支稳定后再补。
 
-## 当前状态
+## 关键入口
+| 文件/目录 | 作用 |
+| --- | --- |
+| `run.bash` | 启动 Streamlit 前端 |
+| `run_cli.bash` | 命令行单图测试 |
+| `run_assess_tpgd.bash` | 启动 Assess-TPGD 初版训练 |
+| `app.py` | 前端页面 |
+| `my_method.py` | 当前 TPGDiff + RAR 主流程 |
+| `fusion_config.py` | 读取 `config.yml` |
+| `scripts/inspect_assessment_hidden.py` | 查看 Assessment hidden states |
+| `scripts/dry_run_assess_tpgd.py` | Assess hidden -> TPGDiff UNet dry run |
+| `scripts/train_assess_tpgd.py` | Assess-TPGD 训练入口 |
+| `methodhub/` | 本地方法适配层 |
+| `myfusion/legacy/` | TPGDiff/RAR/DepictQA 源码快照 |
+| `myfusion/modules/` | 后续自研模块 |
+| `myfusion/pipelines/` | 实验流程入口 |
+| `configs/config.example.yml` | 可提交配置模板 |
+| `config.yml` | 本地配置，不提交 GitHub |
 
-现有可运行入口仍然保留：
-
+## 环境
+建议复用已经跑通的环境：
 ```bash
-./run.bash      # Streamlit 前端
-./run_cli.bash  # 命令行单图测试
+conda activate rar
+cd ~/Experiment/All-in-One/MyFusion
+pip install -e .
+```
+如果重建环境：
+```bash
+conda create -n myfusion python=3.11 -y
+conda activate myfusion
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements.txt
+pip install -e .
+```
+`torch` 要按服务器 CUDA 版本选择。若遇到 `huggingface-hub` 版本报错：
+```bash
+pip install "transformers==4.45.2" "huggingface-hub>=0.23.2,<1.0"
 ```
 
-核心实验链路目前是：
+## 配置
+第一次使用：
+```bash
+cp configs/config.example.yml config.yml
+```
+常改字段都在 `config.yml`：
+```yaml
+runtime:
+  cuda_visible_devices: "0"      # 物理 GPU 编号
+server:
+  port: 8502                      # 前端端口
+fusion:
+  max_rounds: 2                   # 最大 IR 轮数
+  stop_on_reject: true            # 质量判断拒绝后是否停止
+  extract_assessment_reasoning_hidden: true
+  resize: 256
+paths:
+  input: /path/to/input.png
+  output_dir: /path/to/outputs/tpgd_rar_run
+  ui_output_root: /path/to/outputs/ui
+  tpgd_options: ./myfusion/legacy/tpgdiff/universal-restoration/config/tpgd-sde/options/test_fast.yml
+  tpgd_checkpoint: /path/to/latest_G.pth
+  tpgd_prior: /path/to/tpgd_ViT-B-32.pt
+  rar_config: ./myfusion/legacy/rar/configs/infer_cfg.yaml
+  rar_assessment_config: ./myfusion/legacy/rar/iqa/config.yaml
+commands:
+  python: /path/to/env/bin/python
+  streamlit: /path/to/env/bin/streamlit
+assess_tpgd:
+  lq_dir: /path/to/train/LQ
+  gt_dir: /path/to/train/GT
+  hidden_dir: /path/to/assessment/features
+  hidden_path: ""                  # 单 hidden 文件 smoke test 时使用
+  output_dir: /path/to/outputs/assess_tpgd
+  image_size: 128
+  batch_size: 1
+  epochs: 1
+  max_steps: 100
+  lr: 0.0001
+  freeze_backbone: true
+```
+`CUDA_VISIBLE_DEVICES="1"` 后程序里仍显示 `cuda:0` 是正常的，表示当前可见的第 0 张卡，物理上对应 GPU 1。
 
+## 权重和数据
+仓库不保存权重、数据和输出。权重路径写在 `config.yml`，RAR/DepictQA 的权重通常继续由 RAR 配置文件管理。
+不要提交：`config.yml`、`outputs/`、`datasets/`、`model_weights/`、`*.pth`、`*.pt`、`*.ckpt`、`*.safetensors`、`*.bin`。
+
+## 启动前端
+```bash
+cd ~/Experiment/All-in-One/MyFusion
+./run.bash
+```
+浏览器访问：
 ```text
-input image
-  -> TPGDiff restoration candidate
-  -> RAR / DepictQA latent QA 判断是否继续
-  -> optional Assessment Reasoning hidden states
+http://localhost:8502/
 ```
+实际端口以 `config.yml` 的 `server.port` 为准。被占用就改成 `8503` 等空闲端口。
 
-## 目录规划
-
-```text
-MyFusion/
-  app.py                       # 现有 Streamlit UI，暂时保留
-  my_method.py                 # 现有 TPGD + RAR 融合流程，暂时保留
-  fusion_config.py             # 现有配置加载逻辑，暂时保留
-  config.yml                   # 本地私有配置，不建议提交 GitHub
-
-  myfusion/                    # 新的包结构，后续代码逐步迁入这里
-    adapters/                  # 兼容层：统一调用已有源码或 MethodHub
-    legacy/                    # 初期从原方法借来的必要代码边界说明
-    modules/                   # 逐步变成 MyFusion 自己的模块
-    pipelines/                 # 完整实验流程
-
-  configs/                     # 可提交的示例配置
-  scripts/                     # 可复用脚本入口
-  docs/                        # 设计、权重、迁移说明
+## 命令行测试
+```bash
+cd ~/Experiment/All-in-One/MyFusion
+./run_cli.bash
 ```
+输入和输出由 `config.yml` 控制：
+```yaml
+paths:
+  input: /path/to/input.png
+  output_dir: /path/to/output_dir
+```
+输出重点看：`*_history.json`、`*_debug.log`、`features/*.pt`。其中 debug log 用来看每一轮为什么继续或停止。
 
-## 重要原则
-
-1. 原 TPGDiff/RAR/DepictQA 源码暂时不大规模复制进来，只先标出必要模块边界。
-2. 新实验优先写到 `myfusion/modules/` 和 `myfusion/pipelines/`。
-3. 权重、数据、输出结果不提交 GitHub。
-4. 如果直接搬运并修改原项目代码，需要在文件头或文档中保留来源和 license 说明。
-
-## Assessment Reasoning Hidden States
-
-当前已经支持在每轮 IR 中保存 DepictQA/RAR latent-space Assessment Reasoning hidden states。配置项在 `config.yml`：
-
+## Assessment Hidden States
+开启：
 ```yaml
 fusion:
   extract_assessment_reasoning_hidden: true
-  assessment_reasoning_max_new_tokens: 256
 ```
-
-输出 `.pt` 中包含：
-
-```text
-prefix_hidden
-  输入 prompt + latent visual token 的 hidden states
-
-generated_hidden
-  reasoning 文本生成 token 的 hidden states
-
-condition_hidden
-  torch.cat([prefix_hidden, generated_hidden], dim=1)
+运行 UI 或 CLI 后，`features/` 下会生成 `*_assessment_reasoning_hidden.pt`。
+```bash
+HIDDEN_PT=/path/to/image_round1_assessment_reasoning_hidden.pt
+python scripts/inspect_assessment_hidden.py "$HIDDEN_PT"
 ```
+主要字段：`prefix_hidden`、`generated_hidden`、`condition_hidden`。替换 TPGDiff degradation prior 时优先用 `condition_hidden`。
 
-后续如果要替换 TPGDiff 的 degradation prior，优先使用 `condition_hidden`，再通过 `myfusion.modules.assess_prior.AssessPriorAdapter` 投影到目标维度。
+## Assess-TPGD 训练入口
+当前提供的是初版 bootstrap 训练：成对 LQ/GT 图像 + 预提取 Assessment hidden states，训练 `AssessPriorAdapter` 接入 TPGDiff UNet 的链路。它不是最终完整 SDE 训练，但可以作为正式训练流程的起点。
 
-## Legacy Code Snapshot
-
-为了方便后续开 branch 修改，当前已经把 RAR/DepictQA 的必要源码快照放进：
-
-```text
-myfusion/legacy/rar/
-myfusion/legacy/depictqa/
+先在 `config.yml` 设置 `assess_tpgd.lq_dir`、`gt_dir`、`hidden_dir` 和 `output_dir`，然后运行：
+```bash
+cd ~/Experiment/All-in-One/MyFusion
+./run_assess_tpgd.bash
 ```
-
-这些快照暂时不是默认运行路径；当前 UI/CLI 仍然使用外部 TPGDiff/RAR/MethodHub。后续在新 branch 中可以逐步把 legacy 代码改写并迁移到 `myfusion/modules/`。详见 `docs/LEGACY_SNAPSHOT.md`。
-
-## Complete Source Layout
-
-MyFusion now contains local source copies for the current full flow:
-
-```text
-methodhub/                         local adapter layer
-myfusion/legacy/tpgdiff/           TPGDiff source subset
-myfusion/legacy/rar/               RAR source subset
-myfusion/legacy/depictqa/          DepictQA source subset
+也可以临时覆盖参数：
+```bash
+./run_assess_tpgd.bash --max-steps 10 --image-size 64
 ```
+输出在 `assess_tpgd.output_dir`，主要文件是 `train.log`、`latest.pt`、`step_*.pt`。默认 `freeze_backbone: true`，只训练 Assessment prior adapter；需要一起训练 UNet 时使用 `--train-backbone` 或在配置里改 `freeze_backbone: false`。
 
-Weights and datasets are still external. Edit `config.yml` or copy
-`configs/config.example.yml` to point to your local checkpoints.
+## Assess-TPGD Dry Run
+只验证 hidden states 到 TPGDiff UNet 的 forward：
+```bash
+cd ~/Experiment/All-in-One/MyFusion
+HIDDEN_PT=/path/to/image_round1_assessment_reasoning_hidden.pt
+python scripts/dry_run_assess_tpgd.py \
+  --config config.yml \
+  --hidden "$HIDDEN_PT" \
+  --no-load-checkpoint \
+  --device cuda \
+  --image-size 32 \
+  --steps 1 \
+  --mode both
+```
+成功时会看到：`train_ok`、`infer_ok`。核心 pipeline 在 `myfusion/pipelines/assess_tpgd.py`。
 
+## 常见问题
+- `streamlit run` 报 `No such option`：实验参数不要直接传给 Streamlit，改 `config.yml`。
+- 端口被占用：`lsof -i :8502` 查看，`kill <PID>` 结束，或直接改 `server.port`。
+- CUDA OOM：换空闲 GPU，或调小 `fusion.resize`、`fusion.max_rounds`。
+
+## GitHub
+提交前检查：
+```bash
+git status --ignored
+```
+正常情况下，`config.yml` 和 `outputs/` 应该是 ignored。
+```bash
+git add .
+git commit -m "Initial MyFusion framework"
+git branch -M main
+git remote add origin git@github.com:<user>/<repo>.git
+git push -u origin main
+```
+第三方源码快照说明见 `docs/THIRD_PARTY_LICENSES.md` 和 `myfusion/legacy/*/SOURCE.md`。
