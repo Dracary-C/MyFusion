@@ -11,7 +11,7 @@ MyFusion 是一个图像复原实验仓库。当前目标是把 TPGDiff、RAR、
 | `run_assess_tpgd.bash` | 启动 Assess-TPGD 初版训练 |
 | `app.py` | 前端页面 |
 | `my_method.py` | 当前 TPGDiff + RAR 主流程 |
-| `fusion_config.py` | 读取 `config.yml` |
+| `fusion_config.py` | 读取 `test.yml` |
 | `scripts/inspect_assessment_hidden.py` | 查看 Assessment hidden states |
 | `scripts/dry_run_assess_tpgd.py` | Assess hidden -> TPGDiff UNet dry run |
 | `scripts/train_assess_tpgd.py` | Assess-TPGD 训练入口 |
@@ -43,51 +43,71 @@ pip install "transformers==4.45.2" "huggingface-hub>=0.23.2,<1.0"
 ```
 
 ## 配置
-第一次使用：
-```bash
-cp configs/config.example.yml config.yml
+当前拆成两份配置：
+
+```text
+test.yml   # run.bash / run_cli.bash 使用
+train.yml  # run_assess_tpgd.bash 使用
 ```
-常改字段都在 `config.yml`：
+
+`test.yml` 控制 UI/CLI 推理，常改字段是 `gpu_ids`、`server`、`fusion`、`paths`、`commands`。
+
+`train.yml` 仿照 TPGDiff options 的结构，训练入口只读取这份 yml 的顶层字段，不再读取旧的 `assess_tpgd:` 配置块：
+
 ```yaml
-runtime:
-  cuda_visible_devices: "0"      # 物理 GPU 编号
-server:
-  port: 8502                      # 前端端口
-fusion:
-  max_rounds: 2                   # 最大 IR 轮数
-  stop_on_reject: true            # 质量判断拒绝后是否停止
-  extract_assessment_reasoning_hidden: true
-  resize: 256
-paths:
-  input: /path/to/input.png
-  output_dir: /path/to/outputs/tpgd_rar_run
-  ui_output_root: /path/to/outputs/ui
-  tpgd_options: ./myfusion/legacy/tpgdiff/universal-restoration/config/tpgd-sde/options/test_fast.yml
-  tpgd_checkpoint: /path/to/latest_G.pth
-  tpgd_prior: /path/to/tpgd_ViT-B-32.pt
-  rar_config: ./myfusion/legacy/rar/configs/infer_cfg.yaml
-  rar_assessment_config: ./myfusion/legacy/rar/iqa/config.yaml
-commands:
-  python: /path/to/env/bin/python
-  streamlit: /path/to/env/bin/streamlit
-assess_tpgd:
-  lq_dir: /path/to/train/LQ
-  gt_dir: /path/to/train/GT
-  hidden_dir: /path/to/assessment/features
-  hidden_path: ""                  # 单 hidden 文件 smoke test 时使用
-  output_dir: /path/to/outputs/assess_tpgd
-  image_size: 128
-  batch_size: 1
+name: assess-tpgd-sde
+gpu_ids: [2]
+distortion: ['LOL-v2']          # 也可以改成 DehazeFormer、GoPro 等
+use_wandb: false
+
+sde:
+  max_sigma: 50
+  T: 100
+  schedule: cosine
+  eps: 0.005
+
+datasets:
+  train:
+    mode: MD
+    degradation: LOL-v2         # 数据集子目录名
+    dataroot: /data/chenzt/Dataset/TPGDiff/Train
+    lq_dir: ~                   # 为空时使用 dataroot/degradation/LQ
+    gt_dir: ~                   # 为空时使用 dataroot/degradation/GT
+    hidden_dir: /path/to/assessment/features
+    hidden_key: condition_hidden
+    image_size: 128
+    batch_size: 1
+    n_workers: 0
+
+path:
+  experiments_root: /path/to/outputs/assess_tpgd
+  tpgd_options: ./myfusion/legacy/tpgdiff/universal-restoration/config/tpgd-sde/options/train_fast.yml
+  pretrain_model_G: /path/to/latest_G.pth
+  strict_load: false
+
+train:
+  optimizer: AdamW              # Adam、AdamW、Lion
+  lr_G: 0.0001
+  weight_decay_G: 0.0
+  beta1: 0.9
+  beta2: 0.999
   epochs: 1
-  max_steps: 100
-  lr: 0.0001
-  freeze_backbone: true
+  niter: 100
+  train_backbone: false
+  objective: sde                # sde 或 direct_mse
+  loss_type: l1
+  weight: 1.0
+
+logger:
+  print_freq: 10
+  save_checkpoint_freq: 100
 ```
-`CUDA_VISIBLE_DEVICES="1"` 后程序里仍显示 `cuda:0` 是正常的，表示当前可见的第 0 张卡，物理上对应 GPU 1。
+
+`CUDA_VISIBLE_DEVICES="2"` 后程序里仍显示 `cuda:0` 是正常的，表示当前可见的第 0 张卡，物理上对应 GPU 2。
 
 ## 权重和数据
-仓库不保存权重、数据和输出。权重路径写在 `config.yml`，RAR/DepictQA 的权重通常继续由 RAR 配置文件管理。
-不要提交：`config.yml`、`outputs/`、`datasets/`、`model_weights/`、`*.pth`、`*.pt`、`*.ckpt`、`*.safetensors`、`*.bin`。
+仓库不保存权重、数据和输出。权重路径写在 `test.yml` / `train.yml`，RAR/DepictQA 的权重通常继续由 RAR 配置文件管理。
+不要提交：`outputs/`、`outputs/`、`datasets/`、`model_weights/`、`*.pth`、`*.pt`、`*.ckpt`、`*.safetensors`、`*.bin`。
 
 ## 启动前端
 ```bash
@@ -98,14 +118,14 @@ cd ~/Experiment/All-in-One/MyFusion
 ```text
 http://localhost:8502/
 ```
-实际端口以 `config.yml` 的 `server.port` 为准。被占用就改成 `8503` 等空闲端口。
+实际端口以 `test.yml` 的 `server.port` 为准。被占用就改成 `8503` 等空闲端口。
 
 ## 命令行测试
 ```bash
 cd ~/Experiment/All-in-One/MyFusion
 ./run_cli.bash
 ```
-输入和输出由 `config.yml` 控制：
+输入和输出由 `test.yml` 控制：
 ```yaml
 paths:
   input: /path/to/input.png
@@ -126,19 +146,37 @@ python scripts/inspect_assessment_hidden.py "$HIDDEN_PT"
 ```
 主要字段：`prefix_hidden`、`generated_hidden`、`condition_hidden`。替换 TPGDiff degradation prior 时优先用 `condition_hidden`。
 
-## Assess-TPGD 训练入口
-当前提供的是初版 bootstrap 训练：成对 LQ/GT 图像 + 预提取 Assessment hidden states，训练 `AssessPriorAdapter` 接入 TPGDiff UNet 的链路。它不是最终完整 SDE 训练，但可以作为正式训练流程的起点。
+## 生成 Assessment Hidden
+正式训练前先根据 `train.yml` 生成 hidden。默认会读取 `datasets.train.dataroot/degradation/LQ`，并保存到同级 `features/` 目录，例如 `/data/chenzt/Dataset/TPGDiff/Train/LOL-v2/features`：
 
-先在 `config.yml` 设置 `assess_tpgd.lq_dir`、`gt_dir`、`hidden_dir` 和 `output_dir`，然后运行：
+```bash
+cd ~/Experiment/All-in-One/MyFusion
+python scripts/generate_assessment_hidden.py --config train.yml
+```
+
+如果要按 `distortion` 列表生成所有数据集：
+
+```bash
+python scripts/generate_assessment_hidden.py --config train.yml --all-distortions
+```
+
+先小批量试跑：
+
+```bash
+python scripts/generate_assessment_hidden.py --config train.yml --limit 5
+```
+
+已有文件默认跳过；需要重算时加 `--overwrite`。`assessment.output_dtype: bf16` 会减小硬盘占用。
+
+## Assess-TPGD 训练入口
+当前训练入口使用成对 LQ/GT 图像 + 预提取 Assessment hidden states，把 `AssessPriorAdapter` 接入 TPGDiff UNet，并默认使用 TPGDiff 的 IR-SDE matching loss 训练。旧的直接 `MSE(output, GT)` 目标保留为 `objective: direct_mse`，只建议用于链路调试。
+
+先在 `train.yml` 设置 `datasets.train`、`path` 和 `train`，然后运行：
 ```bash
 cd ~/Experiment/All-in-One/MyFusion
 ./run_assess_tpgd.bash
 ```
-也可以临时覆盖参数：
-```bash
-./run_assess_tpgd.bash --max-steps 10 --image-size 64
-```
-输出在 `assess_tpgd.output_dir`，主要文件是 `train.log`、`latest.pt`、`step_*.pt`。默认 `freeze_backbone: true`，只训练 Assessment prior adapter；需要一起训练 UNet 时使用 `--train-backbone` 或在配置里改 `freeze_backbone: false`。
+输出在 `path.checkpoint_save`，主要文件是 `train.log`、`latest.pt`、`step_*.pt`。默认 `train.train_backbone: false`，只训练 Assessment prior adapter，但训练目标已经位于 TPGDiff 的 SDE 反向一步 matching loss 中；需要一起训练 UNet 时把 `train.train_backbone` 改成 `true`。
 
 ## Assess-TPGD Dry Run
 只验证 hidden states 到 TPGDiff UNet 的 forward：
@@ -146,7 +184,7 @@ cd ~/Experiment/All-in-One/MyFusion
 cd ~/Experiment/All-in-One/MyFusion
 HIDDEN_PT=/path/to/image_round1_assessment_reasoning_hidden.pt
 python scripts/dry_run_assess_tpgd.py \
-  --config config.yml \
+  --config test.yml \
   --hidden "$HIDDEN_PT" \
   --no-load-checkpoint \
   --device cuda \
@@ -157,7 +195,7 @@ python scripts/dry_run_assess_tpgd.py \
 成功时会看到：`train_ok`、`infer_ok`。核心 pipeline 在 `myfusion/pipelines/assess_tpgd.py`。
 
 ## 常见问题
-- `streamlit run` 报 `No such option`：实验参数不要直接传给 Streamlit，改 `config.yml`。
+- `streamlit run` 报 `No such option`：实验参数不要直接传给 Streamlit，改 `test.yml` 或 `train.yml`。
 - 端口被占用：`lsof -i :8502` 查看，`kill <PID>` 结束，或直接改 `server.port`。
 - CUDA OOM：换空闲 GPU，或调小 `fusion.resize`、`fusion.max_rounds`。
 
@@ -166,7 +204,7 @@ python scripts/dry_run_assess_tpgd.py \
 ```bash
 git status --ignored
 ```
-正常情况下，`config.yml` 和 `outputs/` 应该是 ignored。
+正常情况下，`outputs/` 应该是 ignored。
 ```bash
 git add .
 git commit -m "Initial MyFusion framework"

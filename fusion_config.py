@@ -7,7 +7,7 @@ from typing import Any
 import yaml
 
 APP_DIR = Path(__file__).resolve().parent
-DEFAULT_CONFIG_PATH = APP_DIR / "config.yml"
+DEFAULT_CONFIG_PATH = APP_DIR / "test.yml"
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "runtime": {
@@ -42,8 +42,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "lr": 1e-4,
         "num_workers": 0,
         "device": "cuda",
-        "freeze_backbone": True,
-        "no_load_checkpoint": False,
+        "train_backbone": False,
+        "load_checkpoint": True,
         "strict_load": False,
         "adapter_hidden_dim": 1024,
         "adapter_pool": "mean",

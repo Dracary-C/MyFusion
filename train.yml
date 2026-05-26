@@ -1,0 +1,166 @@
+#### general settings
+name: assess-tpgd-full-train-v1
+model: denoising
+gpu_ids: [5]
+use_wandb: true
+wandb_project: MyFusion_AssessTPGD
+device: cuda
+
+runtime:
+  tokenizers_parallelism: false
+
+prior_switch:
+  # assessment_hidden: DepictQA/RAR hidden -> adapter -> deg_context
+  # tpgd: original TPGDiff degradation prior -> deg_context
+  # none: disable degradation context
+  degradation_prior_source: assessment_hidden
+  use_content_prior: true
+  use_struct_prior: true
+
+#### Assessment hidden generation
+assessment:
+  rar_root: /home/chenzt/Experiment/All-in-One/MyFusion/myfusion/legacy/rar
+  rar_config: /home/chenzt/Experiment/All-in-One/MyFusion/myfusion/legacy/rar/configs/infer_cfg.yaml
+  rar_assessment_config: /home/chenzt/Experiment/All-in-One/MyFusion/myfusion/legacy/rar/iqa/config.yaml
+  dtype: bf16
+  max_new_tokens: 96
+  hidden_batch_size: 30
+  # Saves hidden tensors smaller than fp32. Use keep/fp32 only for debugging.
+  output_dtype: bf16
+
+#### SDE settings
+sde:
+  max_sigma: 50
+  T: 100
+  schedule: cosine
+  eps: 0.005
+
+#### degradation metadata
+degradation:
+  sigma: 25
+  noise_type: G
+  scale: 4
+
+#### datasets
+datasets:
+  train:
+    name: Train_Dataset
+    # Select one or more subfolders under dataroot.
+    mode: MD
+    degradation: ['LOL-v2', 'DehazeFormer', 'GoPro', 'Denoising', 'Rain200L']
+    # degradation: ['LOL-v2']
+    dataroot: /data/chenzt/Dataset/TPGDiff/Train
+    # Leave lq_dir/gt_dir/hidden_dir empty to resolve under dataroot/degradation.
+    lq_dir: ~
+    gt_dir: ~
+    hidden_dir: ~
+    hidden_leaf: features_condition_mnt64_bf16
+    hidden_path: ""
+    hidden_key: condition_hidden
+    image_size: 256
+    batch_size: 15
+    n_workers: 0
+    use_shuffle: true
+    use_flip: true
+    use_rot: true
+    color: RGB
+  val:
+    name: Val_Dataset
+    mode: MD
+    degradation: ['LOL-v2', 'DehazeFormer', 'GoPro', 'Denoising', 'Rain200L']
+    dataroot: /data/chenzt/Dataset/TPGDiff/Val
+    lq_dir: ~
+    gt_dir: ~
+    hidden_dir: ~
+    hidden_leaf: features_condition_mnt64_bf16
+    hidden_path: ""
+    hidden_key: condition_hidden
+#### python scripts/generate_assessment_hidden.py --config train.yml --overwrite
+
+#### network structures
+# This is TPGDiff's restoration ConditionalUNet, not Stable Diffusion's latent UNet.
+# Current TPGDiff-scale example:
+#   nf: 64
+#   ch_mult: [1, 2, 4, 8]
+#   context_dim: 512
+# Common Stable Diffusion UNet reference scale, for comparison only:
+#   base_channels/block_out_channels: [320, 640, 1280, 1280]
+#   cross_attention_dim: 768  # SD 1.x text encoder; SDXL commonly uses larger/multiple context dims
+#   attention_head_dim: 8
+#   latent input channels: 4, operating at latent resolution such as 64x64 for 512x512 images
+# Do not paste SD settings here directly; this ConditionalUNet uses nf/ch_mult instead.
+network_G:
+  which_model_G: ConditionalUNet
+  setting:
+    in_nc: 3
+    out_nc: 3
+    nf: 64
+    ch_mult: [1, 2, 4, 8]
+    context_dim: 512
+
+structure_prior:
+  which_model: StructurePriorModule
+  setting:
+    in_nc: 3
+    base_channels: 16
+    num_blocks: 4
+    token_dim: 128
+    image_size: 128
+    num_latent_tokens: 32
+
+#### path
+path:
+  checkpoint_save: /data/chenzt/checkpoints
+  checkpoint_load: /data/chenzt/checkpoints/20260526_0329_assess-tpgd-full-train-v1/latest.pt
+  prior: /data/chenzt/model_weights/tpgd/prior/tpgd_ViT-B-32.pt
+  strict_load: false
+  load_checkpoint: false
+
+#### training settings: learning rate scheme, loss
+train:
+  optimizer: AdamW # Adam, AdamW, Lion
+  lr_G: !!float 1e-4
+  weight_decay_G: 0.0
+  beta1: 0.9
+  beta2: 0.999
+  epochs: 10
+  niter: 0
+  train_backbone: true
+  train_structure_prior: true
+
+  objective: sde # sde or direct_mse
+  loss_type: l1
+  weight: 1.0
+  sde_t_start: 1
+  sde_t_end: -1
+
+  adapter_hidden_dim: 1024
+  adapter_pool: mean
+  adapter_dropout: 0.0
+  random_content_context: false
+  save_full_model: true
+
+  scheduler:
+    type: cosine # none, cosine, step, multistep, exponential
+    min_lr: !!float 1e-6
+    t_max: auto # auto = min(niter, epochs * steps_per_epoch) when niter > 0
+    step_size: 30000
+    gamma: 0.5
+    milestones: [50000, 100000]
+    warmup:
+      enabled: true
+      steps: 200
+      start_factor: 0.01
+
+evaluation:
+  enabled: false
+  every_steps: 2000
+  every_epochs: 0
+  batch_size: 4
+  train_max_batches: 10
+  val_max_batches: 20
+
+#### logger
+logger:
+  print_freq: 10
+  save_checkpoint_freq: 2000

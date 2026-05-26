@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONFIG_FILE="${MYFUSION_TEST_CONFIG:-${MYFUSION_CONFIG:-/home/chenzt/Experiment/All-in-One/MyFusion/test.yml}}"
+CONFIG_FILE="${MYFUSION_TRAIN_CONFIG:-${MYFUSION_CONFIG:-/home/chenzt/Experiment/All-in-One/MyFusion/train.yml}}"
 PYTHON_BIN="${PYTHON_BIN:-/home/chenzt/anaconda3/envs/rar/bin/python}"
 
 _cfg_get() {
@@ -22,8 +22,8 @@ elif isinstance(value, (list, tuple)):
 print(value)' "$CONFIG_FILE" "$1" "$2"
 }
 
-PYTHON_BIN="$(_cfg_get commands.python "$PYTHON_BIN")"
-export CUDA_VISIBLE_DEVICES="$(_cfg_get gpu_ids "$(_cfg_get runtime.cuda_visible_devices 1)")"
+export CUDA_VISIBLE_DEVICES="$(_cfg_get gpu_ids 0)"
 export TOKENIZERS_PARALLELISM="$(_cfg_get runtime.tokenizers_parallelism false)"
 
-"$PYTHON_BIN" /home/chenzt/Experiment/All-in-One/MyFusion/my_method.py --config "$CONFIG_FILE"
+cd /home/chenzt/Experiment/All-in-One/MyFusion
+"$PYTHON_BIN" scripts/generate_assessment_hidden.py --config "$CONFIG_FILE" "$@"

@@ -1,0 +1,247 @@
+_wandb:
+    value:
+        cli_version: 0.26.1
+        e:
+            ssr84nkqbdfue2pmo9c4rtfv6goihn1t:
+                args:
+                    - --config
+                    - /home/chenzt/Experiment/All-in-One/MyFusion/train.yml
+                codePath: scripts/train_assess_tpgd.py
+                codePathLocal: scripts/train_assess_tpgd.py
+                cpu_count: 64
+                cpu_count_logical: 128
+                cudaVersion: "12.8"
+                disk:
+                    /:
+                        total: "340380360704"
+                        used: "69184000000"
+                email: czt9@outlook.com
+                executable: /home/chenzt/anaconda3/envs/rar/bin/python
+                git:
+                    commit: 844b11557179038f1839655ef06aa16bb37e789e
+                    remote: https://github.com/Dracary-C/MyFusion.git
+                gpu: NVIDIA A100-SXM4-40GB
+                gpu_count: 8
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-SXM4-40GB
+                      uuid: GPU-fd003ccc-b909-3ae7-2054-cfd6b1cd63eb
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-SXM4-40GB
+                      uuid: GPU-a555a81c-460d-4345-3ad7-8fe443950792
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-SXM4-40GB
+                      uuid: GPU-c4deeba8-197e-374b-7d6a-cc48543fc18d
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-SXM4-40GB
+                      uuid: GPU-49c210db-7e4c-457b-b543-b54d7d99a34e
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-SXM4-40GB
+                      uuid: GPU-ac803cd9-8a85-1bad-157a-da273b5db7d0
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-SXM4-40GB
+                      uuid: GPU-808ddf80-80b7-a2be-3f30-13d6e8c24e12
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-SXM4-40GB
+                      uuid: GPU-9a2a61b1-8b6d-cd7a-c44f-a6ce3541b155
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "42949672960"
+                      name: NVIDIA A100-SXM4-40GB
+                      uuid: GPU-06855a54-dad2-25c4-4b49-1090effbcbe9
+                host: estar-Rack-Server
+                memory:
+                    total: "540648538112"
+                os: Linux-6.17.0-19-generic-x86_64-with-glibc2.39
+                program: /home/chenzt/Experiment/All-in-One/MyFusion/scripts/train_assess_tpgd.py
+                python: CPython 3.11.15
+                root: /home/chenzt/Experiment/All-in-One/MyFusion
+                startedAt: "2026-05-25T12:32:48.480461Z"
+                writerId: ssr84nkqbdfue2pmo9c4rtfv6goihn1t
+        m: []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 1
+                - 11
+                - 41
+                - 49
+                - 63
+                - 71
+            "2":
+                - 1
+                - 11
+                - 41
+                - 49
+                - 63
+                - 71
+            "3":
+                - 13
+                - 16
+                - 61
+            "4": 3.11.15
+            "5": 0.26.1
+            "6": 4.45.2
+            "12": 0.26.1
+            "13": linux-x86_64
+adapter_dropout:
+    value: 0
+adapter_hidden_dim:
+    value: 1024
+adapter_pool:
+    value: mean
+batch_size:
+    value: 16
+beta1:
+    value: 0.9
+beta2:
+    value: 0.999
+degradation_prior_source:
+    value: assessment_hidden
+device:
+    value: cuda
+epochs:
+    value: 10
+freeze_backbone:
+    value: false
+gt_dir:
+    value:
+        - /data/chenzt/Dataset/TPGDiff/Train/LOL-v2/GT
+        - /data/chenzt/Dataset/TPGDiff/Train/DehazeFormer/GT
+        - /data/chenzt/Dataset/TPGDiff/Train/GoPro/GT
+        - /data/chenzt/Dataset/TPGDiff/Train/Denoising/GT
+        - /data/chenzt/Dataset/TPGDiff/Train/Rain200L/GT
+hidden_dir:
+    value:
+        - /data/chenzt/Dataset/TPGDiff/Train/LOL-v2/features_condition_mnt64_bf16
+        - /data/chenzt/Dataset/TPGDiff/Train/DehazeFormer/features_condition_mnt64_bf16
+        - /data/chenzt/Dataset/TPGDiff/Train/GoPro/features_condition_mnt64_bf16
+        - /data/chenzt/Dataset/TPGDiff/Train/Denoising/features_condition_mnt64_bf16
+        - /data/chenzt/Dataset/TPGDiff/Train/Rain200L/features_condition_mnt64_bf16
+hidden_key:
+    value: condition_hidden
+hidden_path:
+    value: null
+image_size:
+    value: 256
+log_every:
+    value: 10
+loss_type:
+    value: l1
+loss_weight:
+    value: 1
+lq_dir:
+    value:
+        - /data/chenzt/Dataset/TPGDiff/Train/LOL-v2/LQ
+        - /data/chenzt/Dataset/TPGDiff/Train/DehazeFormer/LQ
+        - /data/chenzt/Dataset/TPGDiff/Train/GoPro/LQ
+        - /data/chenzt/Dataset/TPGDiff/Train/Denoising/LQ
+        - /data/chenzt/Dataset/TPGDiff/Train/Rain200L/LQ
+lr:
+    value: 0.0001
+max_steps:
+    value: 150000
+no_load_checkpoint:
+    value: true
+num_workers:
+    value: 0
+objective:
+    value: sde
+optimizer:
+    value: AdamW
+output_dir:
+    value: /home/chenzt/Experiment/All-in-One/MyFusion/outputs/assess_tpgd
+prior_checkpoint:
+    value: /data/chenzt/model_weights/tpgd/prior/tpgd_ViT-B-32.pt
+random_content_context:
+    value: false
+save_every:
+    value: 10000
+save_full_model:
+    value: true
+sde_T:
+    value: null
+sde_eps:
+    value: null
+sde_max_sigma:
+    value: null
+sde_schedule:
+    value: null
+sde_t_end:
+    value: -1
+sde_t_start:
+    value: 1
+strict_load:
+    value: false
+tpgd_checkpoint:
+    value: /data/chenzt/model_weights/tpgd/universal/ablation-d1-c1-s1/latest_G.pth
+tpgd_inline_options:
+    value:
+        degradation:
+            noise_type: G
+            scale: 4
+            sigma: 25
+        network_G:
+            setting:
+                ch_mult:
+                    - 1
+                    - 2
+                    - 4
+                    - 8
+                context_dim: 512
+                in_nc: 3
+                nf: 64
+                out_nc: 3
+                struct_context_dim: 128
+                use_degra_context: true
+                use_image_context: true
+                use_struct_context: true
+            which_model_G: ConditionalUNet
+        prior_switch:
+            degradation_prior_source: assessment_hidden
+            use_content_prior: true
+            use_struct_prior: true
+        sde:
+            T: 100
+            eps: 0.005
+            max_sigma: 50
+            schedule: cosine
+        structure_prior:
+            setting:
+                base_channels: 16
+                image_size: 128
+                in_nc: 3
+                num_blocks: 4
+                num_latent_tokens: 32
+                token_dim: 128
+            which_model: StructurePriorModule
+tpgd_options:
+    value: /home/chenzt/Experiment/All-in-One/MyFusion/myfusion/legacy/tpgdiff/universal-restoration/config/tpgd-sde/options/train_fast.yml
+train_structure_prior:
+    value: true
+use_content_prior:
+    value: true
+use_structure_prior:
+    value: true
+use_wandb:
+    value: true
+wandb_project:
+    value: MyFusion_AssessTPGD
+wandb_run_name:
+    value: assess-tpgd-full-train-v1
+weight_decay:
+    value: 0

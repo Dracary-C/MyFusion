@@ -1,0 +1,132 @@
+# MyFusion test / UI / CLI configuration.
+name: myfusion-test
+gpu_ids: [2]
+
+runtime:
+  tokenizers_parallelism: false
+
+server:
+  address: 0.0.0.0
+  port: 8502
+
+fusion:
+  max_rounds: 8
+  stop_on_reject: true
+  extract_assessment_reasoning_hidden: true
+  assessment_reasoning_max_new_tokens: 256
+  resize: 256
+  device: cuda
+  rar_dtype: bf16
+  sampling_mode: posterior
+
+paths:
+  input: /home/chenzt/Experiment/All-in-One/MyFusion/demo_sample/lowlight1.png
+  output_dir: /home/chenzt/Experiment/All-in-One/MyFusion/outputs/tpgd_rar_run
+  ui_output_root: /home/chenzt/Experiment/All-in-One/MyFusion/outputs/ui
+
+  tpgd_options: /home/chenzt/Experiment/All-in-One/MyFusion/myfusion/legacy/tpgdiff/universal-restoration/config/tpgd-sde/options/test_fast.yml
+  tpgd_checkpoint: /data/chenzt/model_weights/tpgd/universal/ablation-d1-c1-s1/latest_G.pth
+  tpgd_prior: /data/chenzt/model_weights/tpgd/prior/tpgd_ViT-B-32.pt
+
+  rar_config: /home/chenzt/Experiment/All-in-One/MyFusion/myfusion/legacy/rar/configs/infer_cfg.yaml
+  rar_assessment_config: /home/chenzt/Experiment/All-in-One/MyFusion/myfusion/legacy/rar/iqa/config.yaml
+
+commands:
+  python: /home/chenzt/anaconda3/envs/rar/bin/python
+  streamlit: /home/chenzt/anaconda3/envs/rar/bin/streamlit
+
+ui:
+  default_example: lowlight1
+  max_rounds_slider_max: 10
+
+#### Assess-TPGD batch test configuration
+prior_switch:
+  # assessment_hidden: DepictQA/RAR hidden -> adapter -> deg_context
+  # tpgd: original TPGDiff degradation prior -> deg_context
+  # none: disable degradation context
+  degradation_prior_source: assessment_hidden
+  use_content_prior: true
+  use_struct_prior: true
+
+sde:
+  max_sigma: 50
+  T: 100
+  schedule: cosine
+  eps: 0.005
+
+degradation:
+  sigma: 25
+  noise_type: G
+  scale: 4
+
+datasets:
+  val:
+    name: Val_Dataset
+    mode: MD
+    degradation: ['LOL-v2', 'DehazeFormer', 'GoPro', 'Denoising', 'Rain200L']
+    dataroot: /data/chenzt/Dataset/TPGDiff/Val
+    lq_dir: ~
+    gt_dir: ~
+    hidden_dir: ~
+    hidden_leaf: features_condition_mnt64_bf16
+    hidden_path: ""
+    hidden_key: condition_hidden
+    image_size: 256
+    batch_size: 4
+    n_workers: 0
+  test:
+    name: Test_Dataset
+    mode: MD
+    degradation: ['LOL-v2', 'DehazeFormer', 'GoPro', 'Denoising', 'Rain200L']
+    dataroot: /data/chenzt/Dataset/TPGDiff/Val
+    lq_dir: ~
+    gt_dir: ~
+    hidden_dir: ~
+    hidden_leaf: features_condition_mnt64_bf16
+    hidden_path: ""
+    hidden_key: condition_hidden
+    image_size: 256
+    batch_size: 4
+    n_workers: 0
+
+network_G:
+  which_model_G: ConditionalUNet
+  setting:
+    in_nc: 3
+    out_nc: 3
+    nf: 64
+    ch_mult: [1, 2, 4, 8]
+    context_dim: 512
+
+structure_prior:
+  which_model: StructurePriorModule
+  setting:
+    in_nc: 3
+    base_channels: 16
+    num_blocks: 4
+    token_dim: 128
+    image_size: 128
+    num_latent_tokens: 32
+
+path:
+  # Explicit trained Assess-TPGD checkpoint for batch testing. No auto-latest lookup.
+  checkpoint_load: /data/chenzt/checkpoints/20260526_0329_assess-tpgd-full-train-v1/latest.pt
+  # Base TPGDiff checkpoint is only needed for assess_prior-only old checkpoints or SP bootstrap.
+  base_checkpoint_load: /data/chenzt/model_weights/tpgd/universal/ablation-d1-c1-s1/latest_G.pth
+  tpgd_options: /home/chenzt/Experiment/All-in-One/MyFusion/myfusion/legacy/tpgdiff/universal-restoration/config/tpgd-sde/options/train_fast.yml
+  prior: /data/chenzt/model_weights/tpgd/prior/tpgd_ViT-B-32.pt
+  strict_load: false
+
+test:
+  objective: sde
+  loss_type: l1
+  weight: 1.0
+  sde_t_start: 1
+  sde_t_end: -1
+  adapter_hidden_dim: 1024
+  adapter_pool: mean
+  adapter_dropout: 0.0
+  batch_size: 4
+  image_size: 256
+  n_workers: 0
+

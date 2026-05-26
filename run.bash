@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONFIG_FILE="${MYFUSION_CONFIG:-/home/chenzt/Experiment/All-in-One/MyFusion/config.yml}"
+CONFIG_FILE="${MYFUSION_TEST_CONFIG:-${MYFUSION_CONFIG:-/home/chenzt/Experiment/All-in-One/MyFusion/test.yml}}"
 PYTHON_BIN="${PYTHON_BIN:-/home/chenzt/anaconda3/envs/rar/bin/python}"
 
 _cfg_get() {
@@ -17,13 +17,15 @@ for part in key.split("."):
     value = value[part]
 if isinstance(value, bool):
     value = str(value).lower()
+elif isinstance(value, (list, tuple)):
+    value = ",".join(str(item) for item in value)
 print(value)' "$CONFIG_FILE" "$1" "$2"
 }
 
 PYTHON_BIN="$(_cfg_get commands.python "$PYTHON_BIN")"
 STREAMLIT_BIN="$(_cfg_get commands.streamlit /home/chenzt/anaconda3/envs/rar/bin/streamlit)"
 
-export CUDA_VISIBLE_DEVICES="$(_cfg_get runtime.cuda_visible_devices 1)"
+export CUDA_VISIBLE_DEVICES="$(_cfg_get gpu_ids "$(_cfg_get runtime.cuda_visible_devices 1)")"
 export TOKENIZERS_PARALLELISM="$(_cfg_get runtime.tokenizers_parallelism false)"
 
 SERVER_ADDRESS="$(_cfg_get server.address 0.0.0.0)"
