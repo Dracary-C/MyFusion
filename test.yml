@@ -1,6 +1,6 @@
 # MyFusion test / UI / CLI configuration.
 name: myfusion-test
-gpu_ids: [2]
+gpu_ids: [5]
 
 runtime:
   tokenizers_parallelism: false
