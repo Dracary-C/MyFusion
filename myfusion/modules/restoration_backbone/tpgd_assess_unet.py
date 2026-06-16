@@ -142,8 +142,19 @@ def load_tpgd_unet_weights(
 
     checkpoint = torch.load(Path(checkpoint_path).expanduser(), map_location=map_location)
     state_dict = _strip_known_prefixes(_unwrap_state_dict(checkpoint))
+    skipped: list[str] = []
+    if not strict:
+        model_state = model.state_dict()
+        compatible = {}
+        for key, value in state_dict.items():
+            target = model_state.get(key)
+            if target is not None and tuple(target.shape) != tuple(value.shape):
+                skipped.append(key)
+                continue
+            compatible[key] = value
+        state_dict = compatible
     incompatible = model.load_state_dict(state_dict, strict=strict)
-    return list(incompatible.missing_keys), list(incompatible.unexpected_keys)
+    return list(incompatible.missing_keys) + skipped, list(incompatible.unexpected_keys)
 
 
 class AssessConditionedTPGDUNet(nn.Module):
